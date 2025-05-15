@@ -26,10 +26,11 @@ const LandingPage = () => {
                 This Isn't Just Shopping. It's Connection.
               </h1>
               <p className="text-lg md:text-xl text-gray-600">
-                Send what they want, when they want — no address, no friction.
+                Did someone say "Hurray"? Count us in. Less Guessing. More
+                Gifting.
                 <br />
-                Explore wishlists. Automate giftings, Celebrate effortlessly.
-                Just phone, email, and magic.
+                No awkward asks. Create your wishlist and for the first time get
+                gifts you "actually" want.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/auth">
