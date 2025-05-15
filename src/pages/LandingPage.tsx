@@ -23,11 +23,10 @@ const LandingPage = () => {
                   letterSpacing: "-0.025em",
                 }}
               >
-                This Isn't Just Shopping. It's Connection.
+                Did someone say "Hurray"? Count us in.
               </h1>
               <p className="text-lg md:text-xl text-gray-600">
-                Did someone say "Hurray"? Count us in. Less Guessing. More
-                Gifting.
+                Less Guessing. More Gifting.
                 <br />
                 No awkward asks. Create your wishlist and for the first time get
                 gifts you "actually" want.
