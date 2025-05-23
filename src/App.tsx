@@ -25,6 +25,7 @@ function App() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/wishlists" element={<Wishlists />} />
           <Route path="/wishlists/:wishlistId" element={<Wishlists />} />
+          <Route path="/wishlist/:wishlistId" element={<Wishlists />} />
           <Route path="/settings" element={<Settings />} />
 
           {/* Add this before the catchall route */}

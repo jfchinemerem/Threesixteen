@@ -43,7 +43,6 @@ interface WishlistItem {
   image: string;
   url?: string;
   notes?: string;
-  priority?: "low" | "medium" | "high";
   addedAt: string;
 }
 
@@ -89,7 +88,6 @@ const WishlistDetail = ({
     image: "",
     url: "",
     notes: "",
-    priority: "medium",
   });
   const [isAddItemOpen, setIsAddItemOpen] = React.useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = React.useState(false);
@@ -141,7 +139,6 @@ const WishlistDetail = ({
       image: "",
       url: "",
       notes: "",
-      priority: "medium",
     });
     setIsAddItemOpen(false);
   };
@@ -246,22 +243,26 @@ const WishlistDetail = ({
   };
 
   const getShareableLink = () => {
-    // In a real app, this would be a proper URL with the wishlist ID
-    return `${window.location.origin}/wishlist/${wishlistData.id}`;
+    // Create a shareable link that goes directly to the wishlist with a parameter indicating it's a shared view
+    // Use /wishlist/ path which we've added to our routes
+    return `${window.location.origin}/wishlist/${wishlistData.id}?shared=true`;
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+  // Priority function removed
+
+  // Check if this is a shared view from URL parameters
+  const [isSharedView, setIsSharedView] = React.useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isShared = urlParams.get("shared") === "true";
+
+    if (isShared) {
+      // If this is a shared view, modify the UI accordingly
+      console.log("This is a shared wishlist view");
+      setIsSharedView(true);
     }
-  };
+  }, []);
 
   // If no wishlist data is available, show a loading or empty state
   if (!wishlistData) {
@@ -359,15 +360,17 @@ const WishlistDetail = ({
           <div className="flex items-center gap-2">
             {!isEditing ? (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit size={14} />
-                  Edit
-                </Button>
+                {!isSharedView && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit size={14} />
+                    Edit
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -377,6 +380,17 @@ const WishlistDetail = ({
                   <Share2 size={14} />
                   Share
                 </Button>
+                {isSharedView && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleCheckout(wishlistData.items)}
+                  >
+                    <Gift size={14} />
+                    Purchase Gifts
+                  </Button>
+                )}
               </>
             ) : (
               <>
@@ -434,32 +448,16 @@ const WishlistDetail = ({
                       placeholder="e.g., Wireless Headphones"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="item-price">Price</Label>
-                      <Input
-                        id="item-price"
-                        name="price"
-                        type="number"
-                        value={newItem.price}
-                        onChange={handleNewItemChange}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="item-priority">Priority</Label>
-                      <select
-                        id="item-priority"
-                        name="priority"
-                        value={newItem.priority}
-                        onChange={handleNewItemChange}
-                        className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="item-price">Price</Label>
+                    <Input
+                      id="item-price"
+                      name="price"
+                      type="number"
+                      value={newItem.price}
+                      onChange={handleNewItemChange}
+                      placeholder="0.00"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="item-image">Image URL</Label>
@@ -539,16 +537,20 @@ const WishlistDetail = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onRemoveItem(item.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Remove</span>
-                            </DropdownMenuItem>
+                            {!isSharedView && (
+                              <>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  <span>Edit</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => onRemoveItem(item.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <span>Remove</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuItem
                               onClick={() => handleCheckout([item])}
                             >
@@ -576,13 +578,7 @@ const WishlistDetail = ({
                           <p className="text-sm text-gray-600">{item.notes}</p>
                         )}
                       </div>
-                      <div className="mt-auto flex justify-between items-center">
-                        <Badge
-                          variant="outline"
-                          className={`${getPriorityColor(item.priority || "medium")} text-xs`}
-                        >
-                          {item.priority || "Medium"} Priority
-                        </Badge>
+                      <div className="mt-auto flex justify-end items-center">
                         <span className="text-xs text-gray-500">
                           Added {item.addedAt}
                         </span>

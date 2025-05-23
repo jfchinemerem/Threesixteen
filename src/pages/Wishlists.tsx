@@ -60,6 +60,13 @@ const Wishlists = () => {
   React.useEffect(() => {
     if (wishlistId) {
       setSelectedWishlist(wishlistId);
+
+      // Check if this is a shared view
+      const isShared =
+        new URLSearchParams(window.location.search).get("shared") === "true";
+      if (isShared) {
+        console.log("Viewing shared wishlist:", wishlistId);
+      }
     }
   }, [wishlistId]);
 
@@ -176,7 +183,22 @@ const Wishlists = () => {
   };
 
   // Find the current wishlist by ID
-  const currentWishlist = wishlists.find((w) => w.id === selectedWishlist);
+  // For shared wishlists, the ID might be in a different format
+  const currentWishlist = wishlists.find((w) => {
+    // Check if the IDs match exactly
+    if (w.id === selectedWishlist) return true;
+
+    // If the selectedWishlist is a URL parameter, it might be in a different format
+    // Extract just the numeric part if it exists in both IDs
+    const selectedIdNumber = selectedWishlist?.match(/\d+/)?.[0];
+    const wishlistIdNumber = w.id.match(/\d+/)?.[0];
+
+    return (
+      selectedIdNumber &&
+      wishlistIdNumber &&
+      selectedIdNumber === wishlistIdNumber
+    );
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -334,6 +356,43 @@ const Wishlists = () => {
                       The wishlist you're looking for doesn't exist or you don't
                       have permission to view it.
                     </p>
+                    {/* Show demo wishlist button if no wishlist is found */}
+                    <Button
+                      onClick={() => {
+                        // Create a demo wishlist for testing
+                        const demoWishlist = {
+                          title: "Demo Wishlist",
+                          description:
+                            "This is a demo wishlist with sample items",
+                          isPrivate: false,
+                          items: [
+                            {
+                              id: `item-${Date.now()}-1`,
+                              name: "Wireless Headphones",
+                              price: 149.99,
+                              image:
+                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80",
+                              notes: "Preferably in black color",
+                              addedAt: new Date().toISOString().split("T")[0],
+                            },
+                            {
+                              id: `item-${Date.now()}-2`,
+                              name: "Smart Watch",
+                              price: 299.99,
+                              image:
+                                "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&q=80",
+                              notes: "Any color is fine",
+                              addedAt: new Date().toISOString().split("T")[0],
+                            },
+                          ],
+                        };
+                        const newWishlistId = addNewWishlist(demoWishlist);
+                        setSelectedWishlist(newWishlistId);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      View Demo Wishlist
+                    </Button>
                   </div>
                 )}
               </>

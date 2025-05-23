@@ -104,7 +104,6 @@ const CreateWishlistForm = ({
       image: "",
       url: "",
       notes: "",
-      priority: "medium",
       vendor: formData.vendor || "",
     });
   };
