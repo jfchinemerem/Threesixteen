@@ -182,6 +182,15 @@ const Wishlists = () => {
     setSelectedWishlist(null);
   };
 
+  // Check if this is a shared view from URL parameters
+  const [isSharedView, setIsSharedView] = React.useState(false);
+
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isShared = urlParams.get("shared") === "true";
+    setIsSharedView(isShared);
+  }, []);
+
   // Find the current wishlist by ID
   // For shared wishlists, the ID might be in a different format
   const currentWishlist = wishlists.find((w) => {
@@ -199,6 +208,45 @@ const Wishlists = () => {
       selectedIdNumber === wishlistIdNumber
     );
   });
+
+  // If this is a shared view and no wishlist is found in local storage,
+  // create a demo wishlist for the shared ID
+  React.useEffect(() => {
+    if (isSharedView && selectedWishlist && !currentWishlist) {
+      // Create a demo wishlist with the shared ID for demonstration purposes
+      // In a real app, this would fetch the wishlist data from a database
+      const sharedWishlist = {
+        id: selectedWishlist,
+        title: "Shared Wishlist",
+        description: "This wishlist was shared with you",
+        isPrivate: false,
+        items: [
+          {
+            id: `item-shared-1`,
+            name: "Wireless Headphones",
+            price: 149.99,
+            image:
+              "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80",
+            notes: "Preferably in black color",
+            addedAt: new Date().toISOString().split("T")[0],
+          },
+          {
+            id: `item-shared-2`,
+            name: "Smart Watch",
+            price: 299.99,
+            image:
+              "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&q=80",
+            notes: "Any color is fine",
+            addedAt: new Date().toISOString().split("T")[0],
+          },
+        ],
+        createdAt: new Date().toISOString().split("T")[0],
+        updatedAt: new Date().toISOString().split("T")[0],
+      };
+
+      setWishlists((prev) => [...prev, sharedWishlist]);
+    }
+  }, [isSharedView, selectedWishlist, currentWishlist]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

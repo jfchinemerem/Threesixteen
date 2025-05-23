@@ -245,7 +245,8 @@ const WishlistDetail = ({
   const getShareableLink = () => {
     // Create a shareable link that goes directly to the wishlist with a parameter indicating it's a shared view
     // Use /wishlist/ path which we've added to our routes
-    return `${window.location.origin}/wishlist/${wishlistData.id}?shared=true`;
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/wishlist/${wishlistData.id}?shared=true`;
   };
 
   // Priority function removed
@@ -261,8 +262,12 @@ const WishlistDetail = ({
       // If this is a shared view, modify the UI accordingly
       console.log("This is a shared wishlist view");
       setIsSharedView(true);
+
+      // Force the component to recognize it's in shared mode
+      // This ensures the UI shows the correct options for shared views
+      document.title = `Shared Wishlist - ${wishlistData?.title || "View and Purchase Gifts"}`;
     }
-  }, []);
+  }, [wishlistData?.title]);
 
   // If no wishlist data is available, show a loading or empty state
   if (!wishlistData) {
