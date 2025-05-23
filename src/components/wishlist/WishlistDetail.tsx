@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,8 @@ import {
   ShoppingCart,
   Copy,
   Check,
+  CreditCard,
+  Gift,
 } from "lucide-react";
 
 interface WishlistItem {
@@ -91,7 +93,11 @@ const WishlistDetail = ({
   });
   const [isAddItemOpen, setIsAddItemOpen] = React.useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = React.useState(false);
+  const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = React.useState(false);
+  const [selectedItems, setSelectedItems] = React.useState<WishlistItem[]>([]);
   const [copied, setCopied] = React.useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = React.useState(false);
+  const [checkoutTotal, setCheckoutTotal] = React.useState(0);
 
   const handleWishlistChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -148,6 +154,60 @@ const WishlistDetail = ({
 
   const handleShare = () => {
     setIsShareDialogOpen(true);
+  };
+
+  const handleCheckout = (items: WishlistItem[]) => {
+    setSelectedItems(items);
+    const total = items.reduce((sum, item) => sum + item.price, 0);
+    setCheckoutTotal(total);
+    setIsCheckoutDialogOpen(true);
+  };
+
+  const initializePaystack = () => {
+    setIsPaymentProcessing(true);
+
+    // Load Paystack script dynamically
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+
+    script.onload = () => {
+      // @ts-ignore - Paystack is loaded globally
+      const paystack = window.PaystackPop.setup({
+        key: "pk_live_a10124a88772f724608fedf989afb3c7822debe2", // Paystack public key
+        email: "customer@example.com", // In a real app, this would be the user's email
+        amount: checkoutTotal * 100, // Paystack amount is in kobo (or cents)
+        currency: "NGN", // Change as needed
+        ref: `wishlist_${wishlistData.id}_${Date.now()}`,
+        onClose: () => {
+          setIsPaymentProcessing(false);
+        },
+        callback: (response: any) => {
+          // Handle successful payment
+          console.log("Payment successful. Reference: " + response.reference);
+          setIsPaymentProcessing(false);
+          setIsCheckoutDialogOpen(false);
+
+          // In a real app, you would update the database to mark these items as purchased
+          // and notify the wishlist owner
+        },
+      });
+
+      paystack.openIframe();
+    };
+
+    script.onerror = () => {
+      console.error("Failed to load Paystack script");
+      setIsPaymentProcessing(false);
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   };
 
   const copyToClipboard = (text: string) => {
@@ -489,6 +549,12 @@ const WishlistDetail = ({
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span>Remove</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleCheckout([item])}
+                            >
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              <span>Purchase Gift</span>
+                            </DropdownMenuItem>
                             {item.url && (
                               <DropdownMenuItem>
                                 <ShoppingCart className="mr-2 h-4 w-4" />
@@ -544,6 +610,19 @@ const WishlistDetail = ({
               >
                 <PlusCircle size={18} />
                 Add Your First Item
+              </Button>
+            </div>
+          )}
+
+          {wishlistData.items.length > 0 && (
+            <div className="mt-6 flex justify-end">
+              <Button
+                onClick={() => handleCheckout(wishlistData.items)}
+                className="flex items-center gap-2"
+                variant="default"
+              >
+                <Gift size={18} />
+                Purchase All Items
               </Button>
             </div>
           )}
@@ -665,6 +744,87 @@ const WishlistDetail = ({
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Checkout Dialog */}
+      <Dialog
+        open={isCheckoutDialogOpen}
+        onOpenChange={setIsCheckoutDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Checkout</DialogTitle>
+            <DialogDescription>
+              Complete your purchase for the selected items.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="max-h-[300px] overflow-y-auto mb-4">
+              <h3 className="font-medium mb-2">Selected Items:</h3>
+              <div className="space-y-2">
+                {selectedItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex justify-between items-center border-b pb-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Gift size={20} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium">{item.name}</span>
+                    </div>
+                    <span className="font-semibold">
+                      ${item.price.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center border-t pt-4 mt-4">
+              <span className="font-bold">Total:</span>
+              <span className="font-bold text-lg">
+                ${checkoutTotal.toFixed(2)}
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCheckoutDialogOpen(false)}
+              disabled={isPaymentProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={initializePaystack}
+              disabled={isPaymentProcessing}
+              className="flex items-center gap-2"
+            >
+              {isPaymentProcessing ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={16} />
+                  Pay with Paystack
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
