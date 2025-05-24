@@ -61,7 +61,9 @@ const Wishlists = () => {
   React.useEffect(() => {
     if (wishlistId) {
       // Clean the wishlistId to handle potential URL encoding issues
-      const cleanWishlistId = wishlistId.trim();
+      const cleanWishlistId = decodeURIComponent(wishlistId).trim();
+      console.log("Original wishlistId:", wishlistId);
+      console.log("Cleaned wishlistId:", cleanWishlistId);
       setSelectedWishlist(cleanWishlistId);
 
       // Check if this is a shared view

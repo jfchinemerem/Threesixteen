@@ -116,8 +116,9 @@ export const getUserWishlists = async (): Promise<Wishlist[]> => {
 export const getWishlistById = async (id: string): Promise<Wishlist | null> => {
   try {
     // Clean the ID to handle potential URL encoding issues
-    const cleanId = id.trim();
-    console.log("Fetching wishlist with ID:", cleanId);
+    const cleanId = decodeURIComponent(id).trim();
+    console.log("Original ID:", id);
+    console.log("Fetching wishlist with cleaned ID:", cleanId);
 
     const { data: wishlist, error } = await supabase
       .from("wishlists")
@@ -139,7 +140,7 @@ export const getWishlistById = async (id: string): Promise<Wishlist | null> => {
     const { data: items, error: itemsError } = await supabase
       .from("wishlist_items")
       .select("*")
-      .eq("wishlist_id", id)
+      .eq("wishlist_id", cleanId)
       .order("added_at", { ascending: false });
 
     if (itemsError) throw itemsError;

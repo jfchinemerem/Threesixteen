@@ -140,7 +140,8 @@ const Dashboard = ({ username }: HomeProps) => {
 
                       if (newWishlistId) {
                         // Navigate to the newly created wishlist
-                        window.location.href = `/wishlist/${newWishlistId}?fromCreation=true`;
+                        const cleanId = newWishlistId.trim();
+                        window.location.href = `/wishlist/${cleanId}?fromCreation=true`;
                       } else {
                         throw new Error("Failed to create wishlist");
                       }

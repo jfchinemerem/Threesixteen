@@ -238,8 +238,9 @@ const WishlistDetail = ({
     // Create a shareable link that goes directly to the wishlist with a parameter indicating it's a shared view
     // Use /wishlist/ path which we've added to our routes
     const baseUrl = window.location.origin;
-    // Use the actual UUID from Supabase
-    return `${baseUrl}/wishlist/${wishlistData.id}?shared=true`;
+    // Use the actual UUID from Supabase and ensure it's clean
+    const cleanId = wishlistData.id.trim();
+    return `${baseUrl}/wishlist/${cleanId}?shared=true`;
   };
 
   // Priority function removed
