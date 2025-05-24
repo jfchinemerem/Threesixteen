@@ -60,13 +60,15 @@ const Wishlists = () => {
   // Update selectedWishlist when wishlistId changes (for shared links)
   React.useEffect(() => {
     if (wishlistId) {
-      setSelectedWishlist(wishlistId);
+      // Clean the wishlistId to handle potential URL encoding issues
+      const cleanWishlistId = wishlistId.trim();
+      setSelectedWishlist(cleanWishlistId);
 
       // Check if this is a shared view
       const isShared =
         new URLSearchParams(window.location.search).get("shared") === "true";
       if (isShared) {
-        console.log("Viewing shared wishlist:", wishlistId);
+        console.log("Viewing shared wishlist:", cleanWishlistId);
       }
     }
   }, [wishlistId]);
@@ -172,8 +174,8 @@ const Wishlists = () => {
         setShowSuccess(false);
       }, 3000);
 
-      // Navigate to the newly created wishlist
-      navigate(`/wishlist/${newWishlistId}`);
+      // Navigate to the newly created wishlist with clean URL
+      navigate(`/wishlist/${newWishlistId.trim()}`);
     }
   };
 
@@ -210,19 +212,29 @@ const Wishlists = () => {
 
       setIsLoadingWishlist(true);
       try {
+        console.log("Attempting to fetch wishlist with ID:", selectedWishlist);
+
         // First check if it's in our already loaded wishlists
         const existingWishlist = wishlists.find(
           (w) => w.id === selectedWishlist,
         );
 
         if (existingWishlist) {
+          console.log("Found wishlist in local cache:", existingWishlist.id);
           setCurrentWishlist(existingWishlist);
         } else {
           // If not found locally, fetch from Supabase
+          console.log("Fetching wishlist from Supabase:", selectedWishlist);
           const fetchedWishlist = await getWishlistById(selectedWishlist);
+
           if (fetchedWishlist) {
+            console.log(
+              "Successfully fetched wishlist from Supabase:",
+              fetchedWishlist.id,
+            );
             setCurrentWishlist(fetchedWishlist);
           } else {
+            console.log("No wishlist found with ID:", selectedWishlist);
             setCurrentWishlist(null);
           }
         }
