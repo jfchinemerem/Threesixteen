@@ -53,6 +53,7 @@ const CreateWishlistForm = ({
     notes: "",
     vendorPlatform: "Vendor Website",
     customVendor: "",
+    imageFile: null as File | null,
   });
 
   const handleChange = (
@@ -111,6 +112,7 @@ const CreateWishlistForm = ({
       notes: "",
       vendorPlatform: "Vendor Website",
       customVendor: "",
+      imageFile: null,
     });
   };
 
@@ -280,10 +282,37 @@ const CreateWishlistForm = ({
                 id="item-image"
                 type="file"
                 accept="image/*"
-                onChange={(e) => {
+                onChange={async (e) => {
                   if (e.target.files && e.target.files[0]) {
+                    // Create a temporary URL for preview
                     const fileUrl = URL.createObjectURL(e.target.files[0]);
-                    setCurrentItem((prev) => ({ ...prev, image: fileUrl }));
+                    setCurrentItem((prev) => ({
+                      ...prev,
+                      image: fileUrl,
+                      imageFile: e.target.files[0],
+                    }));
+
+                    try {
+                      // Import the uploadImage function
+                      const { uploadImage } = await import(
+                        "@/services/wishlistService"
+                      );
+
+                      // Upload to Supabase Storage
+                      const publicUrl = await uploadImage(e.target.files[0]);
+
+                      if (publicUrl) {
+                        console.log("Image uploaded to Supabase:", publicUrl);
+                        setCurrentItem((prev) => ({
+                          ...prev,
+                          image: publicUrl,
+                          imageFile: null,
+                        }));
+                      }
+                    } catch (error) {
+                      console.error("Error uploading image:", error);
+                      // Keep the local URL as fallback
+                    }
                   }
                 }}
                 className="flex-1 w-full mt-1"

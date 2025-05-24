@@ -23,7 +23,7 @@ const LandingPage = () => {
                   letterSpacing: "-0.025em",
                 }}
               >
-                Did someone say "Hurray"? Count us in.
+                Did someone say Hurray? Count us in!
               </h1>
               <p className="text-lg md:text-xl text-gray-600">
                 Less Guessing. More Gifting.

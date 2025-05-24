@@ -177,7 +177,8 @@ const Wishlists = () => {
       }, 3000);
 
       // Navigate to the newly created wishlist with clean URL
-      navigate(`/wishlist/${newWishlistId.trim()}`);
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/wishlist/${newWishlistId.trim()}`;
     }
   };
 

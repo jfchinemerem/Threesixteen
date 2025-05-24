@@ -1,5 +1,33 @@
 import { supabase } from "./supabase";
 
+// Helper function to upload image to Supabase Storage
+export const uploadImage = async (file: File): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `wishlist-images/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from("wishlist-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("wishlist-images")
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    return null;
+  }
+};
+
 export interface WishlistItem {
   id: string;
   name: string;
@@ -115,6 +143,11 @@ export const getUserWishlists = async (): Promise<Wishlist[]> => {
 // Get a single wishlist by ID
 export const getWishlistById = async (id: string): Promise<Wishlist | null> => {
   try {
+    if (!id) {
+      console.error("No wishlist ID provided");
+      return null;
+    }
+
     // Clean the ID to handle potential URL encoding issues
     const cleanId = decodeURIComponent(id).trim();
     console.log("Original ID:", id);

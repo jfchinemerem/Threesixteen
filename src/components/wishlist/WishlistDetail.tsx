@@ -80,6 +80,8 @@ const WishlistDetail = ({
     image: "",
     url: "",
     notes: "",
+    vendorPlatform: "Vendor Website",
+    customVendor: "",
   });
   const [isAddItemOpen, setIsAddItemOpen] = React.useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = React.useState(false);
@@ -131,6 +133,8 @@ const WishlistDetail = ({
       image: "",
       url: "",
       notes: "",
+      vendorPlatform: "Vendor Website",
+      customVendor: "",
     });
     setIsAddItemOpen(false);
   };
@@ -437,56 +441,166 @@ const WishlistDetail = ({
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="item-name">Item Name</Label>
-                    <Input
-                      id="item-name"
-                      name="name"
-                      value={newItem.name}
-                      onChange={handleNewItemChange}
-                      placeholder="e.g., Wireless Headphones"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="item-name" className="text-sm">
+                        Item Name
+                      </Label>
+                      <Input
+                        id="item-name"
+                        name="name"
+                        value={newItem.name}
+                        onChange={handleNewItemChange}
+                        placeholder="e.g., Wireless Headphones"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="item-price" className="text-sm">
+                        Price (₦)
+                      </Label>
+                      <Input
+                        id="item-price"
+                        name="price"
+                        type="number"
+                        value={newItem.price}
+                        onChange={handleNewItemChange}
+                        placeholder="0.00"
+                        className="mt-1"
+                      />
+                      {newItem.price > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          <span>
+                            +15% commission: ₦
+                            {(newItem.price * 0.15).toFixed(2)}
+                          </span>
+                          <br />
+                          <span>+Delivery fee: ₦2,000.00</span>
+                          <br />
+                          <span className="font-medium">
+                            Total: ₦{(newItem.price * 1.15 + 2000).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="item-price">Price</Label>
-                    <Input
-                      id="item-price"
-                      name="price"
-                      type="number"
-                      value={newItem.price}
-                      onChange={handleNewItemChange}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="item-image">Image URL</Label>
-                    <Input
-                      id="item-image"
-                      name="image"
-                      value={newItem.image}
-                      onChange={handleNewItemChange}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="item-url">Product URL</Label>
+
+                  <div>
+                    <Label htmlFor="item-url" className="text-sm">
+                      Product URL
+                    </Label>
                     <Input
                       id="item-url"
                       name="url"
                       value={newItem.url}
                       onChange={handleNewItemChange}
                       placeholder="https://example.com/product"
+                      className="mt-1"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="item-notes">Notes</Label>
+
+                  <div>
+                    <Label htmlFor="item-vendor-platform" className="text-sm">
+                      Vendor Platform
+                    </Label>
+                    <select
+                      id="item-vendor-platform"
+                      name="vendorPlatform"
+                      value={newItem.vendorPlatform || "Vendor Website"}
+                      onChange={handleNewItemChange}
+                      className="w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="Vendor Website">Vendor Website</option>
+                      <option value="Jumia">Jumia</option>
+                      <option value="Konga">Konga</option>
+                      <option value="Jiji">Jiji</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="Tiktok">Tiktok</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="item-vendor-name" className="text-sm">
+                      Vendor Name
+                    </Label>
+                    <Input
+                      id="item-vendor-name"
+                      name="customVendor"
+                      value={newItem.customVendor || ""}
+                      onChange={handleNewItemChange}
+                      placeholder="Enter vendor username or businessname"
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="item-image" className="text-sm">
+                      Upload Image
+                    </Label>
+                    <Input
+                      id="item-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          // Create a temporary URL for preview
+                          const fileUrl = URL.createObjectURL(
+                            e.target.files[0],
+                          );
+                          setNewItem((prev) => ({ ...prev, image: fileUrl }));
+
+                          try {
+                            // Import the uploadImage function
+                            const { uploadImage } = await import(
+                              "@/services/wishlistService"
+                            );
+
+                            // Upload to Supabase Storage
+                            const publicUrl = await uploadImage(
+                              e.target.files[0],
+                            );
+
+                            if (publicUrl) {
+                              console.log(
+                                "Image uploaded to Supabase:",
+                                publicUrl,
+                              );
+                              setNewItem((prev) => ({
+                                ...prev,
+                                image: publicUrl,
+                              }));
+                            }
+                          } catch (error) {
+                            console.error("Error uploading image:", error);
+                            // Keep the local URL as fallback
+                          }
+                        }
+                      }}
+                      className="mt-1"
+                    />
+                    {newItem.image && (
+                      <div className="mt-2">
+                        <img
+                          src={newItem.image}
+                          alt="Item preview"
+                          className="max-h-32 rounded-md object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="item-notes" className="text-sm">
+                      Notes
+                    </Label>
                     <textarea
                       id="item-notes"
                       name="notes"
                       value={newItem.notes}
                       onChange={handleNewItemChange}
                       placeholder="Any specific details about this item..."
-                      className="w-full min-h-[80px] p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full min-h-[80px] p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent mt-1"
                     />
                   </div>
                 </div>
@@ -509,11 +623,17 @@ const WishlistDetail = ({
                 <CardContent className="p-0">
                   <div className="flex">
                     <div className="w-1/3 h-[150px] overflow-hidden">
-                      {item.image ? (
+                      {item.image && item.image !== "" ? (
                         <img
                           src={item.image}
                           alt={item.name}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log("Image failed to load:", item.image);
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src =
+                              "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80";
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-100">
