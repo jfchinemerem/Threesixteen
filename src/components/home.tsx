@@ -88,7 +88,10 @@ const Dashboard = ({ username }: HomeProps) => {
             <Button
               size="lg"
               className="px-8 py-6 text-lg font-medium flex items-center gap-2"
-              onClick={() => setIsDialogOpen(true)}
+              onClick={() => {
+                setIsDialogOpen(true);
+                console.log("Dialog opened");
+              }}
             >
               <Gift className="h-5 w-5" />
               Create Wishlist
@@ -109,39 +112,71 @@ const Dashboard = ({ username }: HomeProps) => {
           </DialogHeader>
           <CreateWishlistForm
             onSubmit={(formData) => {
-              setIsDialogOpen(false);
-              // Show success toast
-              const successMessage = document.createElement("div");
-              successMessage.className =
-                "fixed top-4 right-4 bg-green-600 text-white p-4 rounded-md shadow-lg z-50 flex items-center";
-              successMessage.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Awesome, your wishlist has been created!</span>
-              `;
-              document.body.appendChild(successMessage);
+              try {
+                console.log("Form submitted with data:", formData);
+                setIsDialogOpen(false);
+                // Show success toast
+                const successMessage = document.createElement("div");
+                successMessage.className =
+                  "fixed top-4 right-4 bg-green-600 text-white p-4 rounded-md shadow-lg z-50 flex items-center";
+                successMessage.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Awesome, your wishlist has been created!</span>
+                `;
+                document.body.appendChild(successMessage);
 
-              // Remove after 3 seconds
-              setTimeout(() => {
-                successMessage.classList.add(
-                  "opacity-0",
-                  "transition-opacity",
-                  "duration-500",
+                // Create the wishlist directly in Supabase
+                import("../services/wishlistService").then(
+                  async ({ createWishlist }) => {
+                    try {
+                      const newWishlistId = await createWishlist({
+                        title: formData.title,
+                        description: formData.description,
+                        isPrivate: formData.isPrivate,
+                        items: formData.items || [],
+                      });
+
+                      if (newWishlistId) {
+                        // Navigate to the newly created wishlist
+                        window.location.href = `/wishlist/${newWishlistId}?fromCreation=true`;
+                      } else {
+                        throw new Error("Failed to create wishlist");
+                      }
+                    } catch (error) {
+                      console.error("Error creating wishlist:", error);
+                      alert(
+                        "There was an error creating your wishlist. Please try again.",
+                      );
+                    }
+                  },
                 );
-                setTimeout(
-                  () => document.body.removeChild(successMessage),
-                  500,
+
+                // Remove after 3 seconds
+                setTimeout(() => {
+                  successMessage.classList.add(
+                    "opacity-0",
+                    "transition-opacity",
+                    "duration-500",
+                  );
+                  setTimeout(
+                    () => document.body.removeChild(successMessage),
+                    500,
+                  );
+                  // Navigation is handled in the createWishlist callback
+                }, 2000);
+              } catch (error) {
+                console.error("Error handling form submission:", error);
+                alert(
+                  "There was an error creating your wishlist. Please try again.",
                 );
-                // Store the wishlist data in localStorage to simulate persistence
-                localStorage.setItem(
-                  "newWishlistData",
-                  JSON.stringify(formData),
-                );
-                window.location.href = "/wishlists?fromCreation=true";
-              }, 2000);
+              }
             }}
-            onCancel={() => setIsDialogOpen(false)}
+            onCancel={() => {
+              console.log("Cancel clicked");
+              setIsDialogOpen(false);
+            }}
           />
         </DialogContent>
       </Dialog>

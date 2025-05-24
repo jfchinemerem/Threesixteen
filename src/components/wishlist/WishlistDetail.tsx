@@ -36,15 +36,7 @@ import {
   Gift,
 } from "lucide-react";
 
-interface WishlistItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  url?: string;
-  notes?: string;
-  addedAt: string;
-}
+import { WishlistItem } from "@/services/wishlistService";
 
 interface WishlistDetailProps {
   wishlist?: {
@@ -246,6 +238,7 @@ const WishlistDetail = ({
     // Create a shareable link that goes directly to the wishlist with a parameter indicating it's a shared view
     // Use /wishlist/ path which we've added to our routes
     const baseUrl = window.location.origin;
+    // Use the actual UUID from Supabase
     return `${baseUrl}/wishlist/${wishlistData.id}?shared=true`;
   };
 
@@ -585,7 +578,7 @@ const WishlistDetail = ({
                       </div>
                       <div className="mt-auto flex justify-end items-center">
                         <span className="text-xs text-gray-500">
-                          Added {item.addedAt}
+                          Added {new Date(item.added_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>

@@ -62,11 +62,14 @@ const CreateWishlistForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted", formData);
     // If there's an item in progress with at least a name, add it to the items list
     if (currentItem.name) {
       addItemToWishlist();
     }
-    onSubmit(formData);
+    // Make a copy of the data to avoid any reference issues
+    const submissionData = JSON.parse(JSON.stringify(formData));
+    onSubmit(submissionData);
   };
 
   const handleItemChange = (
@@ -116,7 +119,11 @@ const CreateWishlistForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-full">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 w-full max-w-full"
+      id="wishlist-form"
+    >
       <div className="space-y-2">
         <Label htmlFor="title">Wishlist Title</Label>
         <Input
@@ -326,7 +333,14 @@ const CreateWishlistForm = ({
         >
           Cancel
         </Button>
-        <Button type="submit" className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          className="w-full sm:w-auto"
+          onClick={(e) => {
+            console.log("Create Wishlist button clicked");
+            // The form's onSubmit will handle the submission
+          }}
+        >
           Create Wishlist
         </Button>
       </div>

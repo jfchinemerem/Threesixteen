@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import WishlistsOverview from "@/components/dashboard/WishlistsOverview";
@@ -13,13 +13,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, PlusCircle, Menu } from "lucide-react";
+import { ArrowLeft, PlusCircle, Menu, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  getUserWishlists,
+  getWishlistById,
+  createWishlist,
+  updateWishlist,
+  deleteWishlist,
+  addItemToWishlist,
+  removeItemFromWishlist,
+  Wishlist,
+  WishlistItem,
+} from "@/services/wishlistService";
 
 const Wishlists = () => {
   const { wishlistId } = useParams<{ wishlistId: string }>();
   const [isCreating, setIsCreating] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Check if coming from wishlist creation
   useEffect(() => {
@@ -35,21 +51,6 @@ const Wishlists = () => {
       setTimeout(() => {
         setShowSuccess(false);
       }, 3000);
-
-      // Check if there's wishlist data in localStorage
-      const savedWishlistData = localStorage.getItem("newWishlistData");
-      if (savedWishlistData) {
-        try {
-          const wishlistData = JSON.parse(savedWishlistData);
-          const newWishlistId = addNewWishlist(wishlistData);
-          // Clear the data after using it
-          localStorage.removeItem("newWishlistData");
-          // Select the newly created wishlist
-          setSelectedWishlist(newWishlistId);
-        } catch (error) {
-          console.error("Error parsing wishlist data:", error);
-        }
-      }
     }
   }, []);
   const [selectedWishlist, setSelectedWishlist] = React.useState<string | null>(
@@ -70,61 +71,63 @@ const Wishlists = () => {
     }
   }, [wishlistId]);
 
-  // Load wishlists from localStorage on component mount
-  const [wishlists, setWishlists] = React.useState<any[]>(() => {
-    const savedWishlists = localStorage.getItem("userWishlists");
-    return savedWishlists ? JSON.parse(savedWishlists) : [];
-  });
+  // Load wishlists from Supabase on component mount
+  const [wishlists, setWishlists] = React.useState<Wishlist[]>([]);
+
+  // Fetch wishlists from Supabase
+  const fetchWishlists = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedWishlists = await getUserWishlists();
+      setWishlists(fetchedWishlists);
+    } catch (error) {
+      console.error("Error fetching wishlists:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load wishlists. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load wishlists on component mount
+  React.useEffect(() => {
+    fetchWishlists();
+  }, []);
 
   // Function to add a new wishlist when created
-  const addNewWishlist = (wishlistData: any) => {
-    // Use items from the form if available
-    let items = wishlistData.items || [];
-
-    // If no items were added but we have image/product link, create a default item
-    if (
-      items.length === 0 &&
-      (wishlistData.imageUrl || wishlistData.productLink)
-    ) {
-      items.push({
-        id: `item-${Date.now()}`,
-        name: wishlistData.title || "My Wish",
-        price: 0,
-        image:
-          wishlistData.imageUrl ||
-          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80",
-        url: wishlistData.productLink || "",
-        notes: wishlistData.description || "",
-        priority: "medium" as "medium",
-        addedAt: new Date().toISOString().split("T")[0],
-        vendor: wishlistData.vendor || "",
+  const addNewWishlist = async (wishlistData: any) => {
+    setIsSubmitting(true);
+    try {
+      // Create wishlist in Supabase
+      const newWishlistId = await createWishlist({
+        title: wishlistData.title,
+        description: wishlistData.description,
+        isPrivate: wishlistData.isPrivate,
+        items: wishlistData.items || [],
       });
+
+      if (!newWishlistId) {
+        throw new Error("Failed to create wishlist");
+      }
+
+      // Refresh wishlists
+      await fetchWishlists();
+
+      return newWishlistId;
+    } catch (error) {
+      console.error("Error creating wishlist:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create wishlist. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Add addedAt to any items that don't have it
-    items = items.map((item) => ({
-      ...item,
-      addedAt: item.addedAt || new Date().toISOString().split("T")[0],
-    }));
-
-    const newWishlist = {
-      id: `wishlist-${Date.now()}`,
-      title: wishlistData.title,
-      description: wishlistData.description,
-      isPrivate: wishlistData.isPrivate,
-      items: items,
-      itemCount: items.length,
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-
-    setWishlists((prev) => {
-      const updatedWishlists = [...prev, newWishlist];
-      // Save to localStorage whenever wishlists change
-      localStorage.setItem("userWishlists", JSON.stringify(updatedWishlists));
-      return updatedWishlists;
-    });
-    return newWishlist.id;
   };
 
   // Mock data - in a real app, this would come from an API with user filtering
@@ -156,22 +159,22 @@ const Wishlists = () => {
   //   // All other wishlists have been removed as they weren't created by the current user
   // ];
 
-  const handleCreateWishlist = (data: any) => {
+  const handleCreateWishlist = async (data: any) => {
     console.log("Create wishlist:", data);
-    const newWishlistId = addNewWishlist(data);
-    setIsCreating(false);
-    setShowSuccess(true);
+    const newWishlistId = await addNewWishlist(data);
 
-    // Hide success message after 3 seconds
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 3000);
+    if (newWishlistId) {
+      setIsCreating(false);
+      setShowSuccess(true);
 
-    // Select the newly created wishlist
-    setSelectedWishlist(newWishlistId);
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
 
-    // Save updated wishlists to localStorage
-    localStorage.setItem("userWishlists", JSON.stringify(wishlists));
+      // Navigate to the newly created wishlist
+      navigate(`/wishlist/${newWishlistId}`);
+    }
   };
 
   const handleEditWishlist = (id: string) => {
@@ -192,61 +195,47 @@ const Wishlists = () => {
   }, []);
 
   // Find the current wishlist by ID
-  // For shared wishlists, the ID might be in a different format
-  const currentWishlist = wishlists.find((w) => {
-    // Check if the IDs match exactly
-    if (w.id === selectedWishlist) return true;
+  const [currentWishlist, setCurrentWishlist] = React.useState<Wishlist | null>(
+    null,
+  );
+  const [isLoadingWishlist, setIsLoadingWishlist] = React.useState(false);
 
-    // If the selectedWishlist is a URL parameter, it might be in a different format
-    // Extract just the numeric part if it exists in both IDs
-    const selectedIdNumber = selectedWishlist?.match(/\d+/)?.[0];
-    const wishlistIdNumber = w.id.match(/\d+/)?.[0];
-
-    return (
-      selectedIdNumber &&
-      wishlistIdNumber &&
-      selectedIdNumber === wishlistIdNumber
-    );
-  });
-
-  // If this is a shared view and no wishlist is found in local storage,
-  // create a demo wishlist for the shared ID
+  // Fetch specific wishlist when ID changes
   React.useEffect(() => {
-    if (isSharedView && selectedWishlist && !currentWishlist) {
-      // Create a demo wishlist with the shared ID for demonstration purposes
-      // In a real app, this would fetch the wishlist data from a database
-      const sharedWishlist = {
-        id: selectedWishlist,
-        title: "Shared Wishlist",
-        description: "This wishlist was shared with you",
-        isPrivate: false,
-        items: [
-          {
-            id: `item-shared-1`,
-            name: "Wireless Headphones",
-            price: 149.99,
-            image:
-              "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80",
-            notes: "Preferably in black color",
-            addedAt: new Date().toISOString().split("T")[0],
-          },
-          {
-            id: `item-shared-2`,
-            name: "Smart Watch",
-            price: 299.99,
-            image:
-              "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&q=80",
-            notes: "Any color is fine",
-            addedAt: new Date().toISOString().split("T")[0],
-          },
-        ],
-        createdAt: new Date().toISOString().split("T")[0],
-        updatedAt: new Date().toISOString().split("T")[0],
-      };
+    const fetchWishlist = async () => {
+      if (!selectedWishlist) {
+        setCurrentWishlist(null);
+        return;
+      }
 
-      setWishlists((prev) => [...prev, sharedWishlist]);
-    }
-  }, [isSharedView, selectedWishlist, currentWishlist]);
+      setIsLoadingWishlist(true);
+      try {
+        // First check if it's in our already loaded wishlists
+        const existingWishlist = wishlists.find(
+          (w) => w.id === selectedWishlist,
+        );
+
+        if (existingWishlist) {
+          setCurrentWishlist(existingWishlist);
+        } else {
+          // If not found locally, fetch from Supabase
+          const fetchedWishlist = await getWishlistById(selectedWishlist);
+          if (fetchedWishlist) {
+            setCurrentWishlist(fetchedWishlist);
+          } else {
+            setCurrentWishlist(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching wishlist:", error);
+        setCurrentWishlist(null);
+      } finally {
+        setIsLoadingWishlist(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [selectedWishlist, wishlists]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -344,57 +333,114 @@ const Wishlists = () => {
                 {currentWishlist ? (
                   <WishlistDetail
                     wishlist={currentWishlist}
-                    onSave={(updatedWishlist) => {
-                      // Update the wishlist in the wishlists array
-                      const updatedWishlists = wishlists.map((w) =>
-                        w.id === updatedWishlist.id
-                          ? { ...w, ...updatedWishlist }
-                          : w,
-                      );
-                      setWishlists(updatedWishlists);
-                      // Save to localStorage
-                      localStorage.setItem(
-                        "userWishlists",
-                        JSON.stringify(updatedWishlists),
-                      );
-                    }}
-                    onAddItem={(newItem) => {
-                      // Add the item to the current wishlist
-                      const updatedWishlists = wishlists.map((w) => {
-                        if (w.id === currentWishlist.id) {
-                          return {
-                            ...w,
-                            items: [...w.items, newItem],
-                          };
+                    onSave={async (updatedWishlist) => {
+                      try {
+                        // Update the wishlist in Supabase
+                        const success = await updateWishlist(
+                          updatedWishlist.id,
+                          {
+                            title: updatedWishlist.title,
+                            description: updatedWishlist.description,
+                            is_private: updatedWishlist.is_private,
+                          },
+                        );
+
+                        if (success) {
+                          // Refresh wishlists
+                          await fetchWishlists();
+                          toast({
+                            title: "Success",
+                            description: "Wishlist updated successfully",
+                          });
+                        } else {
+                          throw new Error("Failed to update wishlist");
                         }
-                        return w;
-                      });
-                      setWishlists(updatedWishlists);
-                      // Save to localStorage
-                      localStorage.setItem(
-                        "userWishlists",
-                        JSON.stringify(updatedWishlists),
-                      );
+                      } catch (error) {
+                        console.error("Error updating wishlist:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update wishlist",
+                          variant: "destructive",
+                        });
+                      }
                     }}
-                    onRemoveItem={(itemId) => {
-                      // Remove the item from the current wishlist
-                      const updatedWishlists = wishlists.map((w) => {
-                        if (w.id === currentWishlist.id) {
-                          return {
-                            ...w,
-                            items: w.items.filter((item) => item.id !== itemId),
-                          };
+                    onAddItem={async (newItem) => {
+                      try {
+                        if (!currentWishlist) return;
+
+                        // Add the item to Supabase
+                        const itemId = await addItemToWishlist(
+                          currentWishlist.id,
+                          {
+                            name: newItem.name,
+                            price: newItem.price,
+                            image: newItem.image,
+                            url: newItem.url,
+                            notes: newItem.notes,
+                          },
+                        );
+
+                        if (itemId) {
+                          // Refresh the current wishlist
+                          const refreshedWishlist = await getWishlistById(
+                            currentWishlist.id,
+                          );
+                          if (refreshedWishlist) {
+                            setCurrentWishlist(refreshedWishlist);
+                          }
+
+                          toast({
+                            title: "Success",
+                            description: "Item added to wishlist",
+                          });
+                        } else {
+                          throw new Error("Failed to add item");
                         }
-                        return w;
-                      });
-                      setWishlists(updatedWishlists);
-                      // Save to localStorage
-                      localStorage.setItem(
-                        "userWishlists",
-                        JSON.stringify(updatedWishlists),
-                      );
+                      } catch (error) {
+                        console.error("Error adding item:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to add item to wishlist",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    onRemoveItem={async (itemId) => {
+                      try {
+                        // Remove the item from Supabase
+                        const success = await removeItemFromWishlist(itemId);
+
+                        if (success && currentWishlist) {
+                          // Refresh the current wishlist
+                          const refreshedWishlist = await getWishlistById(
+                            currentWishlist.id,
+                          );
+                          if (refreshedWishlist) {
+                            setCurrentWishlist(refreshedWishlist);
+                          }
+
+                          toast({
+                            title: "Success",
+                            description: "Item removed from wishlist",
+                          });
+                        } else {
+                          throw new Error("Failed to remove item");
+                        }
+                      } catch (error) {
+                        console.error("Error removing item:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to remove item from wishlist",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                   />
+                ) : isLoadingWishlist ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-gray-300">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                    <p className="text-gray-500">Loading wishlist...</p>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -404,42 +450,11 @@ const Wishlists = () => {
                       The wishlist you're looking for doesn't exist or you don't
                       have permission to view it.
                     </p>
-                    {/* Show demo wishlist button if no wishlist is found */}
                     <Button
-                      onClick={() => {
-                        // Create a demo wishlist for testing
-                        const demoWishlist = {
-                          title: "Demo Wishlist",
-                          description:
-                            "This is a demo wishlist with sample items",
-                          isPrivate: false,
-                          items: [
-                            {
-                              id: `item-${Date.now()}-1`,
-                              name: "Wireless Headphones",
-                              price: 149.99,
-                              image:
-                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80",
-                              notes: "Preferably in black color",
-                              addedAt: new Date().toISOString().split("T")[0],
-                            },
-                            {
-                              id: `item-${Date.now()}-2`,
-                              name: "Smart Watch",
-                              price: 299.99,
-                              image:
-                                "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&q=80",
-                              notes: "Any color is fine",
-                              addedAt: new Date().toISOString().split("T")[0],
-                            },
-                          ],
-                        };
-                        const newWishlistId = addNewWishlist(demoWishlist);
-                        setSelectedWishlist(newWishlistId);
-                      }}
+                      onClick={() => navigate("/wishlists")}
                       className="flex items-center gap-2"
                     >
-                      View Demo Wishlist
+                      Back to My Wishlists
                     </Button>
                   </div>
                 )}
