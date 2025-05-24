@@ -526,7 +526,7 @@ const WishlistDetail = ({
                         <div>
                           <h3 className="font-medium">{item.name}</h3>
                           <p className="text-primary font-semibold">
-                            ${item.price.toFixed(2)}
+                            ₦{(item.price * 1.15 + 2000).toFixed(2)}
                           </p>
                         </div>
                         <DropdownMenu>

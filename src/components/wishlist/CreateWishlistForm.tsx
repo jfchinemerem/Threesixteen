@@ -20,7 +20,8 @@ interface WishlistItem {
   image: string;
   url?: string;
   notes?: string;
-  vendor?: string;
+  vendorPlatform?: string;
+  customVendor?: string;
 }
 
 interface CreateWishlistFormProps {
@@ -50,7 +51,8 @@ const CreateWishlistForm = ({
     image: "",
     url: "",
     notes: "",
-    vendor: "",
+    vendorPlatform: "Vendor Website",
+    customVendor: "",
   });
 
   const handleChange = (
@@ -107,7 +109,8 @@ const CreateWishlistForm = ({
       image: "",
       url: "",
       notes: "",
-      vendor: formData.vendor || "",
+      vendorPlatform: "Vendor Website",
+      customVendor: "",
     });
   };
 
@@ -173,7 +176,7 @@ const CreateWishlistForm = ({
             </div>
             <div>
               <Label htmlFor="item-price" className="text-sm">
-                Price
+                Price (₦)
               </Label>
               <Input
                 id="item-price"
@@ -184,6 +187,19 @@ const CreateWishlistForm = ({
                 placeholder="0.00"
                 className="mt-1"
               />
+              {currentItem.price > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  <span>
+                    +15% commission: ₦{(currentItem.price * 0.15).toFixed(2)}
+                  </span>
+                  <br />
+                  <span>+Delivery fee: ₦2,000.00</span>
+                  <br />
+                  <span className="font-medium">
+                    Total: ₦{(currentItem.price * 1.15 + 2000).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -212,18 +228,25 @@ const CreateWishlistForm = ({
           </div>
 
           <div>
-            <Label htmlFor="item-vendor" className="text-sm">
-              Vendor
+            <Label htmlFor="item-vendor-platform" className="text-sm">
+              Vendor Platform
             </Label>
             <div className="flex flex-col sm:flex-row items-center gap-2">
-              <Input
-                id="item-vendor"
-                name="vendor"
-                value={currentItem.vendor}
+              <select
+                id="item-vendor-platform"
+                name="vendorPlatform"
+                value={currentItem.vendorPlatform}
                 onChange={handleItemChange}
-                placeholder="e.g., Amazon, Target, etc."
-                className="flex-1 w-full mt-1"
-              />
+                className="flex-1 w-full mt-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="Vendor Website">Vendor Website</option>
+                <option value="Jumia">Jumia</option>
+                <option value="Konga">Konga</option>
+                <option value="Jiji">Jiji</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Tiktok">Tiktok</option>
+                <option value="Other">Other</option>
+              </select>
               <Button
                 type="button"
                 variant="outline"
@@ -232,6 +255,19 @@ const CreateWishlistForm = ({
               >
                 <Store size={16} />
               </Button>
+            </div>
+            <div className="mt-2">
+              <Label htmlFor="item-vendor-name" className="text-sm">
+                Vendor Name
+              </Label>
+              <Input
+                id="item-vendor-name"
+                name="customVendor"
+                value={currentItem.customVendor}
+                onChange={handleItemChange}
+                placeholder="Enter vendor username or businessname"
+                className="w-full mt-1"
+              />
             </div>
           </div>
 
@@ -306,7 +342,7 @@ const CreateWishlistForm = ({
                   <div>
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-gray-500">
-                      ${item.price.toFixed(2)}
+                      ₦{(item.price * 1.15 + 2000).toFixed(2)} (Total)
                     </p>
                   </div>
                 </div>
